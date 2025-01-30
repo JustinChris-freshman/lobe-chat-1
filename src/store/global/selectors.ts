@@ -1,29 +1,71 @@
-import { DEFAULT_AGENT_META } from '@/const/meta';
-import { DEFAULT_AGENT, DEFAULT_AGENT_CONFIG, DEFAULT_SETTINGS } from '@/const/settings';
-import { GlobalSettings } from '@/types/settings';
-import { merge } from '@/utils/merge';
+import { isServerMode, isUsePgliteDB } from '@/const/version';
+import { GlobalStore } from '@/store/global';
+import { DatabaseLoadingState } from '@/types/clientDB';
 
-import { GlobalStore } from './store';
+import { INITIAL_STATUS } from './initialState';
 
-const currentSettings = (s: GlobalStore) => merge(DEFAULT_SETTINGS, s.settings);
+const systemStatus = (s: GlobalStore) => s.status;
 
-const defaultAgent = (s: GlobalStore) => merge(DEFAULT_AGENT, s.settings.defaultAgent);
+const sessionGroupKeys = (s: GlobalStore): string[] =>
+  s.status.expandSessionGroupKeys || INITIAL_STATUS.expandSessionGroupKeys;
 
-const defaultAgentConfig = (s: GlobalStore) => merge(DEFAULT_AGENT_CONFIG, defaultAgent(s).config);
+const showSystemRole = (s: GlobalStore) => s.status.showSystemRole;
+const mobileShowTopic = (s: GlobalStore) => s.status.mobileShowTopic;
+const mobileShowPortal = (s: GlobalStore) => s.status.mobileShowPortal;
+const showChatSideBar = (s: GlobalStore) => !s.status.zenMode && s.status.showChatSideBar;
+const showSessionPanel = (s: GlobalStore) => !s.status.zenMode && s.status.showSessionPanel;
+const showFilePanel = (s: GlobalStore) => s.status.showFilePanel;
+const hidePWAInstaller = (s: GlobalStore) => s.status.hidePWAInstaller;
 
-const defaultAgentMeta = (s: GlobalStore) => merge(DEFAULT_AGENT_META, defaultAgent(s).meta);
+const showChatHeader = (s: GlobalStore) => !s.status.zenMode;
+const inZenMode = (s: GlobalStore) => s.status.zenMode;
+const sessionWidth = (s: GlobalStore) => s.status.sessionsWidth;
+const filePanelWidth = (s: GlobalStore) => s.status.filePanelWidth;
+const inputHeight = (s: GlobalStore) => s.status.inputHeight;
+const threadInputHeight = (s: GlobalStore) => s.status.threadInputHeight;
 
-export const exportSettings = (s: GlobalStore) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { OPENAI_API_KEY: _, password: __, ...settings } = s.settings;
+const isPgliteNotEnabled = (s: GlobalStore) =>
+  isUsePgliteDB && !isServerMode && s.isStatusInit && !s.status.isEnablePglite;
 
-  return settings as GlobalSettings;
-};
+/**
+ * 当且仅当 client db 模式，且 pglite 未初始化完成时返回 true
+ */
+const isPgliteNotInited = (s: GlobalStore) =>
+  isUsePgliteDB &&
+  s.isStatusInit &&
+  s.status.isEnablePglite &&
+  s.initClientDBStage !== DatabaseLoadingState.Ready;
 
-export const globalSelectors = {
-  currentSettings,
-  defaultAgent,
-  defaultAgentConfig,
-  defaultAgentMeta,
-  exportSettings,
+/**
+ * 当且仅当 client db 模式，且 pglite 初始化完成时返回 true
+ */
+const isPgliteInited = (s: GlobalStore): boolean =>
+  (s.isStatusInit &&
+    s.status.isEnablePglite &&
+    s.initClientDBStage === DatabaseLoadingState.Ready) ||
+  false;
+
+// 这个变量控制 clientdb 是否完成初始化，正常来说，只有 pgliteDB 模式下，才会存在变化，其他时候都是 true
+const isDBInited = (s: GlobalStore): boolean => (isUsePgliteDB ? isPgliteInited(s) : true);
+
+export const systemStatusSelectors = {
+  filePanelWidth,
+  hidePWAInstaller,
+  inZenMode,
+  inputHeight,
+  isDBInited,
+  isPgliteInited,
+  isPgliteNotEnabled,
+  isPgliteNotInited,
+  mobileShowPortal,
+  mobileShowTopic,
+  sessionGroupKeys,
+  sessionWidth,
+  showChatHeader,
+  showChatSideBar,
+  showFilePanel,
+  showSessionPanel,
+  showSystemRole,
+  systemStatus,
+  threadInputHeight,
 };
